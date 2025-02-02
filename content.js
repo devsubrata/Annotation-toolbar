@@ -1,11 +1,8 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "toggleToolbar") {
         let toolbar = document.getElementById("custom-toolbar");
-        if (toolbar) {
-            toolbar.remove();
-        } else {
-            injectToolbar();
-        }
+        if (toolbar) toolbar.remove();
+        else injectToolbar();
     }
 });
 
@@ -34,13 +31,20 @@ function injectToolbar() {
 
         <button id="eraser">Eraser</button>
         <button id="clear">Clear</button>
-        <button id="save">Save</button>
+
+        <div class="undo_redo">
+            <button id="undo" title="undo">↶</button>
+            <button id="redo" title="redo">↷</button>
+        </div>
 
         <div class="range_div">
             <label for="opacity">Opacity</label>
             <input type="range" id="opacity" min="0" max="1" step="0.01" value="1" />
             <span id="opacityValue">1.0</span>
         </div>
+
+        <button id="save">Save</button>
+        <button id="exit">Exit</button>
     `;
     document.body.prepend(toolbar);
     injectCanvas(); // Call the function to inject the canvas on toolbar injection
@@ -88,6 +92,8 @@ function injectCanvas() {
     let currentTool = "brush";
     let startX, startY;
     let snapshot; // Store canvas state before drawing a rectangle
+    const undoStack = [];
+    const redoStack = [];
 
     // Set active tool
     function setActiveTool(tool) {
@@ -183,6 +189,10 @@ function injectCanvas() {
     function stopPainting() {
         painting = false;
         ctx.closePath();
+
+        const state = canvas.toDataURL();
+        undoStack.push(state);
+        redoStack.length = 0;
     }
 
     // Event Listeners for mouse
@@ -247,6 +257,43 @@ function injectCanvas() {
         const { r, g, b } = extractRGB(brushColor);
         brushColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
     });
+
+    document.getElementById("exit")?.addEventListener("click", () => {
+        ["drawingCanvas", "custom-toolbar"].forEach((id) => {
+            document.getElementById(id)?.remove();
+        });
+    });
+
+    // Undo functionality
+    document.getElementById("undo").addEventListener("click", () => {
+        if (undoStack.length >= 1) {
+            // Ensure there's a state to undo to
+            const currentState = undoStack.pop(); // Pop current state
+            redoStack.push(currentState); // Push to redo stack
+            const prevState = undoStack[undoStack.length - 1]; // Get previous state
+            restoreCanvas(prevState); // Restore canvas
+        }
+    });
+
+    // Redo functionality
+    document.getElementById("redo").addEventListener("click", () => {
+        if (redoStack.length > 0) {
+            // Ensure there's a state to redo to
+            const nextState = redoStack.pop(); // Pop next state
+            undoStack.push(nextState); // Push to undo stack
+            restoreCanvas(nextState); // Restore canvas
+        }
+    });
+
+    // Function to restore canvas from a state
+    function restoreCanvas(state) {
+        const img = new Image();
+        img.src = state;
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            ctx.drawImage(img, 0, 0); // Draw the saved state
+        };
+    }
 
     function createRGBA(hex, opacity) {
         hex = hex.replace("#", "");
