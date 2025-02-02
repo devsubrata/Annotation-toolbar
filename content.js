@@ -1,14 +1,10 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "toggleToolbar") {
         let toolbar = document.getElementById("custom-toolbar");
-        let canvas = document.getElementById("drawingCanvas");
-
         if (toolbar) {
             toolbar.remove();
-            if (canvas) canvas.remove();
         } else {
             injectToolbar();
-            injectCanvas();
         }
     }
 });
@@ -18,6 +14,7 @@ function injectToolbar() {
     toolbar.id = "custom-toolbar";
     toolbar.innerHTML = `
         <button id="brush" class="active">Brush</button>
+
         <button id="horizontalLine" title="Horizontal line">==</button>
         <button id="verticalLine" title="Vertical line">||</button>
 
@@ -45,96 +42,64 @@ function injectToolbar() {
             <span id="opacityValue">1.0</span>
         </div>
     `;
-
     document.body.prepend(toolbar);
-    addToolbarEvents();
+    injectCanvas(); // Call the function to inject the canvas on toolbar injection
 }
 
 function injectCanvas() {
     let canvas = document.createElement("canvas");
     canvas.id = "drawingCanvas";
-    canvas.style.position = "fixed";
-    canvas.style.top = "0";
-    canvas.style.left = "0";
-    canvas.style.width = "100vw";
-    canvas.style.height = "100vh";
-    canvas.style.zIndex = "9999";
-    canvas.style.pointerEvents = "auto"; // ✅ Allows interaction with canvas
     document.body.appendChild(canvas);
 
-    let ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    addCanvasEvents(canvas, ctx);
-}
-
-function addCanvasEvents(canvas, ctx) {
+    const ctx = canvas.getContext("2d");
     let drawing = false;
-    let tool = "brush";
-    let color = "#000000";
-    let size = 1;
-    let opacity = 1.0;
 
-    function startDraw(e) {
+    function setupCanvas() {
+        canvas.width = document.documentElement.scrollWidth;
+        canvas.height = document.documentElement.scrollHeight;
+        canvas.style.position = "absolute";
+        canvas.style.top = "0";
+        canvas.style.left = "0";
+        canvas.style.zIndex = "9999";
+        canvas.style.pointerEvents = "auto";
+        canvas.style.backgroundColor = "transparent";
+    }
+
+    setupCanvas();
+    window.addEventListener("resize", setupCanvas);
+
+    // Drawing functionality
+    canvas.addEventListener("mousedown", (e) => {
         drawing = true;
         ctx.beginPath();
-        ctx.moveTo(e.clientX, e.clientY);
-    }
+        ctx.moveTo(e.clientX + window.scrollX, e.clientY + window.scrollY);
+    });
 
-    function draw(e) {
-        if (!drawing) return;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = size;
-        ctx.globalAlpha = opacity;
-        ctx.lineCap = "round";
-
-        if (tool === "brush") {
-            ctx.lineTo(e.clientX, e.clientY);
+    canvas.addEventListener("mousemove", (e) => {
+        if (drawing) {
+            ctx.lineTo(e.clientX + window.scrollX, e.clientY + window.scrollY);
             ctx.stroke();
         }
-    }
-
-    function stopDraw() {
-        drawing = false;
-        ctx.beginPath();
-    }
-
-    canvas.addEventListener("mousedown", startDraw);
-    canvas.addEventListener("mousemove", draw);
-    canvas.addEventListener("mouseup", stopDraw);
-    canvas.addEventListener("mouseleave", stopDraw);
-
-    // Toolbar event listeners
-    document.getElementById("brush").addEventListener("click", () => (tool = "brush"));
-    document.getElementById("eraser").addEventListener("click", () => {
-        tool = "brush";
-        color = "#FFFFFF";
     });
-    document
-        .getElementById("colorPicker")
-        .addEventListener("input", (e) => (color = e.target.value));
-    document.getElementById("brushSize").addEventListener("input", (e) => (size = e.target.value));
-    document.getElementById("opacity").addEventListener("input", (e) => (opacity = e.target.value));
 
-    document.getElementById("clear").addEventListener("click", () => {
+    canvas.addEventListener("mouseup", () => {
+        drawing = false;
+    });
+    canvas.addEventListener("mouseleave", () => {
+        drawing = false;
+    });
+
+    // Clear canvas button functionality
+    document.getElementById("clear")?.addEventListener("click", () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
 
-    document.getElementById("save").addEventListener("click", () => {
+    // Save canvas functionality
+    document.getElementById("save")?.addEventListener("click", () => {
+        let dataUrl = canvas.toDataURL("image/png");
         let link = document.createElement("a");
+        link.href = dataUrl;
         link.download = "drawing.png";
-        link.href = canvas.toDataURL();
         link.click();
-    });
-}
-
-function addToolbarEvents() {
-    document.getElementById("brushSize").addEventListener("input", function () {
-        document.getElementById("rangeValue").innerText = this.value;
-    });
-
-    document.getElementById("opacity").addEventListener("input", function () {
-        document.getElementById("opacityValue").innerText = this.value;
     });
 }
