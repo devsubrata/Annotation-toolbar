@@ -1,0 +1,26 @@
+{
+    "manifest_version": 3,
+    "name": "Annotation Toolbar",
+    "version": "1.0",
+    "description": "Adds a annotation toolbar for smooth reading experience.",
+    "permissions": ["activeTab", "storage"],
+    "host_permissions": ["<all_urls>"],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_title": "Toggle Toolbar",
+        "default_icon": {
+            "16": "icon.png",
+            "48": "icon.png",
+            "128": "icon.png"
+        }
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"],
+            "css": ["styles.css"]
+        }
+    ]
+}
