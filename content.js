@@ -226,12 +226,18 @@ function injectCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
 
-    // Save Image
     document.getElementById("save").addEventListener("click", () => {
-        const link = document.createElement("a");
-        link.href = canvas.toDataURL();
-        link.download = "paint.png";
-        link.click();
+        html2canvas(document.body, {
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: document.documentElement.scrollWidth,
+            windowHeight: document.documentElement.scrollHeight,
+        }).then((canvas) => {
+            const link = document.createElement("a");
+            link.download = "annotated_page.png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
     });
 
     // Opacity Control

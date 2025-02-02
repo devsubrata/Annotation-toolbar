@@ -21,10 +21,7 @@
     border: 1px solid gray;
 }
 
-#custom-toolbar button:hover {
-    background: #77dd96;
-}
-
+#custom-toolbar button:hover,
 #custom-toolbar button.active {
     border-color: #007bff;
     background-color: #007bff;
@@ -40,4 +37,8 @@
     border: 2px solid grey;
     padding: 7px;
     font-weight: bold;
+}
+
+#drawingCanvas {
+    cursor: url("pen.png") 16 16, crosshair;
 }

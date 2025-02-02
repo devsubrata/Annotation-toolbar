@@ -1,15 +1,15 @@
 {
     "manifest_version": 3,
-    "name": "Annotation Toolbar",
+    "name": "Interactive Drawing Toolbar",
     "version": "1.0",
-    "description": "Adds a annotation toolbar for smooth reading experience.",
+    "description": "A study companion for GRE/IELTS reading. Annotate and highlight web articles!",
     "permissions": ["activeTab", "storage"],
     "host_permissions": ["<all_urls>"],
     "background": {
         "service_worker": "background.js"
     },
     "action": {
-        "default_title": "Toggle Toolbar",
+        "default_title": "Annotate your article",
         "default_icon": {
             "16": "icon.png",
             "48": "icon.png",
@@ -19,7 +19,7 @@
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["content.js"],
+            "js": ["libs/html2canvas.js", "content.js"],
             "css": ["styles.css"]
         }
     ]
