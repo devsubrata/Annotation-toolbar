@@ -19,7 +19,7 @@
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["libs/html2canvas.js", "content.js"],
+            "js": ["libs/jscolor.js", "libs/html2canvas.js", "content.js"],
             "css": ["styles.css"]
         }
     ]

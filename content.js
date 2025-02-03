@@ -21,7 +21,16 @@ function injectToolbar() {
         <button id="circle" title="Circle">🔘</button>
         <button id="filledCircle" title="Filled circle">⚫</button>
 
-        <input type="color" id="colorPicker" />
+        <input id="colorPicker" value="000000" data-jscolor='{ 
+            "backgroundColor": "always", 
+            "borderRadius": 8,
+            "textElement": "self",
+            "previewSize": 70,
+            "width": 320,
+            "height": 200,
+            "zIndex": 20000,
+            "presets": ["ffcc00", "ff5733", "33ff57", "3357ff", "ff33d1"] 
+        }'>
 
         <div class="range_div">
             <label for="opacity">Size</label>
@@ -220,6 +229,7 @@ function injectCanvas() {
     tools.filledCircle.addEventListener("click", () => setActiveTool("filledCircle"));
 
     // Color Picker
+    jscolor.install();
     colorPicker.addEventListener("input", (e) => {
         brushColor = createRGBA(e.target.value, opacity);
     });
