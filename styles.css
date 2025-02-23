@@ -37,10 +37,15 @@
     border: 2px solid grey;
     padding: 7px;
     font-weight: bold;
+    width: 40px;
 }
 
-#drawingCanvas {
-    cursor: url("pen.png") 16 16, crosshair;
+#activeColor {
+    width: 40px;
+    height: 40px;
+    background-color: black;
+    border-radius: 50%;
+    border: 1px solid rgb(0, 0, 0);
 }
 
 #colorPicker {
@@ -55,4 +60,56 @@
     z-index: 20000;
     font-size: 18px;
     overflow: hidden;
+}
+
+/* Color picker button styling */
+.color-picker {
+    position: relative;
+}
+.color-picker-button {
+    width: 60px;
+    height: 35px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #ffffff; /* Default button color */
+    transition: transform 0.2s ease;
+}
+
+.color-picker-button:hover {
+    transform: scale(1.1); /* Slightly enlarge on hover */
+}
+
+/* Color swatches container */
+.color-swatches {
+    display: none;
+    position: absolute;
+    top: 40;
+    left: 0;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    padding: 10px;
+    grid-template-columns: repeat(5, 40px); /* 4 columns of 40px each */
+    gap: 10px; /* Space between swatches */
+    z-index: 1000; /* Ensure it appears above other content */
+}
+
+.color-swatches.visible {
+    display: grid; /* Show when visible */
+}
+
+/* Color swatch styling */
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1); /* Slightly enlarge on hover */
+    border-color: #999;
 }

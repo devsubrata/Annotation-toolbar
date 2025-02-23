@@ -10,14 +10,12 @@ function injectToolbar() {
     let toolbar = document.createElement("div");
     toolbar.id = "custom-toolbar";
     toolbar.innerHTML = `
+        <div id="activeColor" title="Active Color"></div>
         <button id="brush" class="active">Brush</button>
-
         <button id="horizontalLine" title="Horizontal line">==</button>
         <button id="verticalLine" title="Vertical line">||</button>
-
         <button id="rectangle" title="Rectangle">▭</button>
         <button id="filledRectangle" title="Filled rectangle">▆</button>
-
         <button id="circle" title="Circle">🔘</button>
         <button id="filledCircle" title="Filled circle">⚫</button>
 
@@ -37,6 +35,33 @@ function injectToolbar() {
             <input type="range" id="brushSize" min="1" max="50" value="1" />
             <span id="rangeValue">01</span>
         </div>
+        <div class="color-picker">
+            <div class="color-picker-button" id="colorPickerButton" title="Predefined color"></div>
+            <div class="color-swatches" id="colorSwatches">
+                <div class="color-swatch" data-color="#ffffff" style="background-color: #ffffff"></div>
+                <div class="color-swatch" data-color="#000000" style="background-color: #000000"></div>
+                <div class="color-swatch" data-color="#ff0000" style="background-color: #ff0000"></div>
+                <div class="color-swatch" data-color="#00ff00" style="background-color: #00ff00"></div>
+                <div class="color-swatch" data-color="#0000ff" style="background-color: #0000ff"></div>
+                <div class="color-swatch" data-color="#ffff00" style="background-color: #ffff00"></div>
+                <div class="color-swatch" data-color="#135242" style="background-color: #135242"></div>
+                <div class="color-swatch" data-color="#17bebb" style="background-color: #17bebb"></div>
+                <div class="color-swatch" data-color="#b1253e" style="background-color: #b1253e"></div>
+                <div class="color-swatch" data-color="#229fde" style="background-color: #229fde"></div>
+                <div class="color-swatch" data-color="#f4a4aa" style="background-color: #f4a4aa"></div>
+                <div class="color-swatch" data-color="#00ffff" style="background-color: #00ffff"></div>
+                <div class="color-swatch" data-color="#ff00ff" style="background-color: #ff00ff"></div>
+                <div class="color-swatch" data-color="#964B00" style="background-color: #964B00"></div>
+                <div class="color-swatch" data-color="#BE5103" style="background-color: #BE5103"></div>
+                <div class="color-swatch" data-color="#ffa500" style="background-color: #ffa500"></div>
+                <div class="color-swatch" data-color="#4B0001" style="background-color: #4B0001"></div>
+                <div class="color-swatch" data-color="#E85D5E" style="background-color: #E85D5E"></div>
+                <div class="color-swatch" data-color="#7F00FF" style="background-color: #7F00FF"></div>
+                <div class="color-swatch" data-color="#B163FF" style="background-color: #B163FF"></div>
+                <div class="color-swatch" data-color="#51158C" style="background-color: #51158C"></div>
+                <div class="color-swatch" data-color="#2B0057" style="background-color: #2B0057"></div>
+            </div>
+        </div>
 
         <button id="eraser">Eraser</button>
         <button id="clear">Clear</button>
@@ -48,8 +73,8 @@ function injectToolbar() {
 
         <div class="range_div">
             <label for="opacity">Opacity</label>
-            <input type="range" id="opacity" min="0" max="1" step="0.01" value="1" />
-            <span id="opacityValue">1.0</span>
+            <input type="range" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
+            <span id="opacityValue">1.00</span>
         </div>
 
         <button id="save">Save</button>
@@ -232,6 +257,7 @@ function injectCanvas() {
     jscolor.install();
     colorPicker.addEventListener("input", (e) => {
         brushColor = createRGBA(e.target.value, opacity);
+        document.getElementById("activeColor").style.backgroundColor = brushColor;
     });
 
     // Brush Size
@@ -263,9 +289,11 @@ function injectCanvas() {
     // Opacity Control
     document.getElementById("opacity").addEventListener("input", (e) => {
         opacity = e.target.value;
-        document.getElementById("opacityValue").textContent = opacity;
+        document.getElementById("opacityValue").textContent = parseFloat(opacity).toFixed(2);
+
         const { r, g, b } = extractRGB(brushColor);
         brushColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        document.getElementById("activeColor").style.backgroundColor = brushColor;
     });
 
     document.getElementById("exit")?.addEventListener("click", () => {
@@ -318,4 +346,35 @@ function injectCanvas() {
         const match = rgbaString.match(rgbaRegex);
         return { r: parseInt(match[1], 10), g: parseInt(match[2], 10), b: parseInt(match[3], 10) };
     }
+
+    // Code for predifined color
+    const colorPickerButton = document.getElementById("colorPickerButton");
+    const colorSwatches = document.getElementById("colorSwatches");
+
+    // Toggle color swatches visibility on button click
+    colorPickerButton.addEventListener("click", function (event) {
+        event.stopPropagation(); // Prevent event from bubbling up
+        colorSwatches.classList.toggle("visible");
+    });
+
+    // Handle color selection
+    document.querySelectorAll(".color-swatch").forEach((swatch) => {
+        swatch.addEventListener("click", function () {
+            // Get the selected color's hex code
+            const selectedColor = this.getAttribute("data-color");
+            // Update button color
+            colorPickerButton.style.backgroundColor = selectedColor;
+            // Hide swatches after selection
+            colorSwatches.classList.remove("visible");
+            brushColor = createRGBA(selectedColor, opacity);
+            document.getElementById("activeColor").style.backgroundColor = brushColor;
+        });
+    });
+
+    // Close swatches when clicking outside
+    document.addEventListener("click", function (event) {
+        if (!event.target.closest(".color-picker")) {
+            colorSwatches.classList.remove("visible");
+        }
+    });
 }
