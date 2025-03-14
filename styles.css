@@ -2,6 +2,7 @@
     position: fixed;
     top: 0;
     width: 100%;
+    -webkit-text-size-adjust: none;
     gap: 10px;
     padding: 10px;
     background-color: #c1dde3;
@@ -28,6 +29,19 @@
     color: white;
 }
 
+.highlight_div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.highlight_div #highlighterSize {
+    display: inline-block;
+    font-size: 16px;
+    width: 45px;
+    height: 38px;
+    outline: none;
+}
+
 #rangeValue,
 #opacityValue {
     display: inline-flex;
@@ -52,7 +66,7 @@
     border-style: 1px solid grey;
     border-radius: 5px;
     height: 35px;
-    width: 170px;
+    width: 50px;
     margin-left: 3px;
     text-align: center;
     cursor: pointer;
@@ -60,6 +74,7 @@
     z-index: 20000;
     font-size: 18px;
     overflow: hidden;
+    -webkit-text-size-adjust: none;
 }
 
 /* Color picker button styling */
@@ -90,9 +105,9 @@
     border: 2px solid #ccc;
     border-radius: 10px;
     padding: 10px;
-    grid-template-columns: repeat(5, 40px); /* 4 columns of 40px each */
+    grid-template-columns: repeat(8, 40px); /* 4 columns of 40px each */
     gap: 10px; /* Space between swatches */
-    z-index: 1000; /* Ensure it appears above other content */
+    z-index: 25000; /* Ensure it appears above other content */
 }
 
 .color-swatches.visible {
