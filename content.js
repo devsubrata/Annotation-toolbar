@@ -11,9 +11,39 @@ function injectToolbar() {
     toolbar.id = "custom-toolbar";
     toolbar.innerHTML = `
         <div id="activeColor" title="Active Color"></div>
-        <div class="color-picker">
-            <div class="color-picker-button" id="colorPickerButton" title="Predefined color"></div>
-            <div class="color-swatches" id="colorSwatches">
+        <div class="color-picker"></div>
+        <div class="color-picker"></div>
+        <div class="highlight_div">
+            <button id="highlight" title="Highlight Text">🎨</button>
+            <input type="number" id="highlighterSize" min="10" max="50" value="15" step="5"/>
+        </div>
+        <button id="filledRectangle" title="Filled rectangle">▆</button>
+        <button id="brush" class="active">🖌️</button>
+        <button id="horizontalLine" title="straight line">==</button>
+        <button id="rectangle" title="Rectangle">▭</button>
+        <div class="range_div">
+            <label for="brushSize">Size</label>
+            <input type="range" id="brushSize" min="1" max="50" value="1" />
+            <span id="rangeValue">01</span>
+        </div>
+        <button id="clear" title="Erase everything">🆑</button>
+        <div class="undo_redo">
+            <button id="undo" title="undo">↶</button>
+            <button id="redo" title="redo">↷</button>
+        </div>
+        <div class="range_div">
+            <label for="opacity">🪟</label>
+            <input type="range" title="Adjust opacity" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
+            <span id="opacityValue">1.00</span>
+        </div>
+        <button id="save" title="Take Snapshot">💾</button>
+        <button id="exit">❌</button>
+    `;
+    document.body.prepend(toolbar);
+
+    const colors = `
+            <div class="color-picker-button" title="Color Picker"></div>
+            <div class="color-swatches">
                 <div class="color-swatch" data-color="#ffffff" style="background-color: #ffffff"></div>
                 <div class="color-swatch" data-color="#000000" style="background-color: #000000"></div>
                 <div class="color-swatch" data-color="#ff0000" style="background-color: #ff0000"></div>
@@ -41,51 +71,13 @@ function injectToolbar() {
                 <div class="color-swatch" data-color="#00ffff" style="background-color: #00ffff"></div>
                 <div class="color-swatch" data-color="#ffff00" style="background-color: #ffff00"></div>
             </div>
-        </div>
-        <button id="brush" class="active">🖌️</button>
-        <div class="highlight_div">
-            <button id="highlight" title="Highlight Text">🎨</button>
-            <input type="number" id="highlighterSize" min="10" max="50" value="15" step="5"/>
-        </div>
-        <button id="horizontalLine" title="Horizontal line">==</button>
-        <button id="verticalLine" title="Vertical line">||</button>
-        <button id="rectangle" title="Rectangle">▭</button>
-        <button id="filledRectangle" title="Filled rectangle">▆</button>
-        <button id="circle" title="Circle">🔘</button>
-        <button id="filledCircle" title="Filled circle">⚫</button>
-
-        <input id="colorPicker" value="000000" data-jscolor='{ 
-            "backgroundColor": "always", 
-            "borderRadius": 8,
-            "textElement": "self",
-            "previewSize": 70,
-            "width": 320,
-            "height": 200,
-            "zIndex": 20000,
-            "presets": ["ffcc00", "ff5733", "33ff57", "3357ff", "ff33d1"] 
-        }'>
-        <div class="range_div">
-            <label for="opacity">Size</label>
-            <input type="range" id="brushSize" min="1" max="50" value="1" />
-            <span id="rangeValue">01</span>
-        </div>
-        <button id="clear" title="Erase everything">🆑</button>
-
-        <div class="undo_redo">
-            <button id="undo" title="undo">↶</button>
-            <button id="redo" title="redo">↷</button>
-        </div>
-
-        <div class="range_div">
-            <label for="opacity">Opacity</label>
-            <input type="range" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
-            <span id="opacityValue">1.00</span>
-        </div>
-
-        <button id="save" title="Take Snapshot">💾</button>
-        <button id="exit">❌</button>
     `;
-    document.body.prepend(toolbar);
+
+    const colorPickers = document.querySelectorAll(".color-picker");
+    colorPickers.forEach((colorPicker) => {
+        colorPicker.innerHTML = colors;
+    });
+
     injectCanvas(); // Call the function to inject the canvas on toolbar injection
 }
 
@@ -109,7 +101,6 @@ function injectCanvas() {
     window.addEventListener("resize", setupCanvas);
 
     const ctx = canvas.getContext("2d");
-    const colorPicker = document.getElementById("colorPicker");
     const brushSizeInput = document.getElementById("brushSize");
 
     // Tools
@@ -117,30 +108,36 @@ function injectCanvas() {
         brush: document.getElementById("brush"),
         highlighter: document.getElementById("highlight"),
         horizontalLine: document.getElementById("horizontalLine"),
-        verticalLine: document.getElementById("verticalLine"),
         rectangle: document.getElementById("rectangle"),
         filledRectangle: document.getElementById("filledRectangle"),
-        circle: document.getElementById("circle"),
-        filledCircle: document.getElementById("filledCircle"),
     };
 
     let painting = false;
     let brushSize = 1;
     let highlighterSize = 15;
     let opacity = 1.0;
-    let highlightColor = `rgba(255, 255, 0, 0.4)`;
-    let brushColor = `rgba(0,0,0,${opacity})`;
+    let color1 = `rgba(0,0,0,${opacity})`;
+    let color2 = `rgba(255, 255, 0, 0.4)`;
     let currentTool = "brush";
     let startX, startY;
     let snapshot; // Store canvas state before drawing a rectangle
     const undoStack = [];
     const redoStack = [];
 
+    const [colorPicker1, colorPicker2] = document.querySelectorAll(".color-picker");
+    colorPicker1.children[0].style.backgroundColor = color1;
+    colorPicker2.children[0].style.backgroundColor = color2;
+
     // Set active tool
     function setActiveTool(tool) {
         currentTool = tool;
         Object.values(tools).forEach((btn) => btn.classList.remove("active"));
         tools[tool].classList.add("active");
+        if (tool === "highlighter" || tool === "filledRectangle") {
+            document.getElementById("activeColor").style.backgroundColor = color2;
+        } else {
+            document.getElementById("activeColor").style.backgroundColor = color1;
+        }
     }
 
     // Convert touch event to mouse-like coordinates
@@ -166,8 +163,6 @@ function injectCanvas() {
         switch (currentTool) {
             case "rectangle":
             case "filledRectangle":
-            case "circle":
-            case "filledCircle":
             case "highlighter":
                 snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 break;
@@ -185,15 +180,11 @@ function injectCanvas() {
 
         ctx.lineWidth = brushSize;
         ctx.lineCap = "round";
-        ctx.strokeStyle = brushColor;
+        ctx.strokeStyle = color1;
 
         switch (currentTool) {
             case "horizontalLine":
                 ctx.lineTo(pos.x, startY);
-                ctx.stroke();
-                break;
-            case "verticalLine":
-                ctx.lineTo(startX, pos.y);
                 ctx.stroke();
                 break;
             case "rectangle":
@@ -204,27 +195,14 @@ function injectCanvas() {
                 if (currentTool === "rectangle") {
                     ctx.strokeRect(startX, startY, width, height);
                 } else {
-                    ctx.fillStyle = brushColor;
+                    ctx.fillStyle = color2;
                     ctx.fillRect(startX, startY, width, height);
-                }
-                break;
-            case "circle":
-            case "filledCircle":
-                ctx.putImageData(snapshot, 0, 0);
-                const radius = Math.sqrt((startX - pos.x) ** 2 + (startY - pos.y) ** 2);
-                ctx.beginPath();
-                ctx.arc(startX, startY, radius, 0, Math.PI * 2);
-                if (currentTool === "circle") {
-                    ctx.stroke();
-                } else {
-                    ctx.fillStyle = brushColor;
-                    ctx.fill();
                 }
                 break;
             case "highlighter":
                 ctx.putImageData(snapshot, 0, 0);
                 let w = pos.x - startX;
-                ctx.fillStyle = highlightColor;
+                ctx.fillStyle = color2;
                 ctx.fillRect(startX, startY, w, highlighterSize);
                 break;
             default:
@@ -261,18 +239,8 @@ function injectCanvas() {
     tools.brush.addEventListener("click", () => setActiveTool("brush"));
     tools.highlighter.addEventListener("click", () => setActiveTool("highlighter"));
     tools.horizontalLine.addEventListener("click", () => setActiveTool("horizontalLine"));
-    tools.verticalLine.addEventListener("click", () => setActiveTool("verticalLine"));
     tools.rectangle.addEventListener("click", () => setActiveTool("rectangle"));
     tools.filledRectangle.addEventListener("click", () => setActiveTool("filledRectangle"));
-    tools.circle.addEventListener("click", () => setActiveTool("circle"));
-    tools.filledCircle.addEventListener("click", () => setActiveTool("filledCircle"));
-
-    // Color Picker
-    jscolor.install();
-    colorPicker.addEventListener("input", (e) => {
-        brushColor = createRGBA(e.target.value, opacity);
-        document.getElementById("activeColor").style.backgroundColor = brushColor;
-    });
 
     // highlighter Size
     document.getElementById("highlighterSize").addEventListener("input", (e) => {
@@ -310,9 +278,9 @@ function injectCanvas() {
         opacity = e.target.value;
         document.getElementById("opacityValue").textContent = parseFloat(opacity).toFixed(2);
 
-        const { r, g, b } = extractRGB(brushColor);
-        brushColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
-        document.getElementById("activeColor").style.backgroundColor = brushColor;
+        const { r, g, b } = extractRGB(color2);
+        color1 = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        document.getElementById("activeColor").style.backgroundColor = color1;
     });
 
     document.getElementById("exit")?.addEventListener("click", () => {
@@ -366,55 +334,44 @@ function injectCanvas() {
         return { r: parseInt(match[1], 10), g: parseInt(match[2], 10), b: parseInt(match[3], 10) };
     }
 
-    // Code for predifined color
-    const colorPickerButton = document.getElementById("colorPickerButton");
-    const colorSwatches = document.getElementById("colorSwatches");
+    // Code for color pickers
+    function assignColor(colorPicker, colorVariable) {
+        // Code for predifined color
+        const colorPickerButton = colorPicker.querySelector(".color-picker-button");
+        const colorSwatches = colorPicker.querySelector(".color-swatches");
+        console.log(colorSwatches);
 
-    // Toggle color swatches visibility on button click
-    colorPickerButton.addEventListener("click", function (event) {
-        event.stopPropagation(); // Prevent event from bubbling up
-        colorSwatches.classList.toggle("visible");
-    });
-
-    // Handle color selection
-    document.querySelectorAll(".color-swatch").forEach((swatch) => {
-        swatch.addEventListener("click", function () {
-            // Get the selected color's hex code
-            const selectedColor = this.getAttribute("data-color");
-            // Update button color
-            colorPickerButton.style.backgroundColor = selectedColor;
-            // Hide swatches after selection
-            colorSwatches.classList.remove("visible");
-            brushColor = createRGBA(selectedColor, opacity);
-            highlightColor = createRGBA(selectedColor, 0.4);
-            document.getElementById("activeColor").style.backgroundColor = brushColor;
+        // Toggle color swatches visibility on button click
+        colorPickerButton.addEventListener("click", function (event) {
+            event.stopPropagation(); // Prevent event from bubbling up
+            colorSwatches.classList.toggle("visible");
         });
-    });
 
-    // Close swatches when clicking outside
-    document.addEventListener("click", function (event) {
-        if (!event.target.closest(".color-picker")) {
-            colorSwatches.classList.remove("visible");
-        }
-    });
-}
+        // Handle color selection
+        colorSwatches.querySelectorAll(".color-swatch").forEach((swatch) => {
+            swatch.addEventListener("click", function () {
+                // Get the selected color's hex code
+                const selectedColor = this.getAttribute("data-color");
+                // Update button color
+                colorPickerButton.style.backgroundColor = selectedColor;
+                // Hide swatches after selection
+                colorSwatches.classList.remove("visible");
 
-document.addEventListener(
-    "wheel",
-    function (event) {
-        if (event.ctrlKey && document.querySelector("#custom-toolbar")?.contains(event.target)) {
-            event.preventDefault();
-        }
-    },
-    { passive: false }
-);
+                if (colorVariable === 1) color1 = createRGBA(selectedColor, opacity);
+                else color2 = createRGBA(selectedColor, 0.4);
 
-document.addEventListener("keydown", function (event) {
-    if (
-        event.ctrlKey &&
-        (event.key === "+" || event.key === "-" || event.key === "0") &&
-        document.querySelector("#custom-toolbar")?.contains(document.activeElement)
-    ) {
-        event.preventDefault();
+                if (currentTool === "highlighter" || currentTool === "filledRectangle")
+                    document.getElementById("activeColor").style.backgroundColor = color2;
+                else document.getElementById("activeColor").style.backgroundColor = color1;
+            });
+        });
+
+        // Close swatches when clicking outside
+        document.addEventListener("click", function (event) {
+            if (!event.target.closest(".color-picker")) colorSwatches.classList.remove("visible");
+        });
     }
-});
+
+    assignColor(colorPicker1, 1);
+    assignColor(colorPicker2, 2);
+}
