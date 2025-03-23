@@ -17,13 +17,14 @@ function injectToolbar() {
             <button id="highlight" title="Highlight Text">🎨</button>
             <input type="number" id="highlighterSize" min="10" max="50" value="15" step="5"/>
         </div>
+        <button id="typeText" title="Add text">T</button>
         <button id="filledRectangle" title="Filled rectangle">▆</button>
         <button id="brush" class="active">🖌️</button>
         <button id="horizontalLine" title="straight line">==</button>
         <button id="rectangle" title="Rectangle">▭</button>
         <div class="range_div">
             <label for="brushSize">Size</label>
-            <input type="range" id="brushSize" min="1" max="50" value="1" />
+            <input type="range" id="brushSize" title="Adjust brush, line width" min="1" max="50" value="1" />
             <span id="rangeValue">01</span>
         </div>
         <button id="clear" title="Erase everything">🆑</button>
@@ -32,12 +33,35 @@ function injectToolbar() {
             <button id="redo" title="redo">↷</button>
         </div>
         <div class="range_div">
-            <label for="opacity">🪟</label>
+            <label for="opacity">🌓</label>
             <input type="range" title="Adjust opacity" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
             <span id="opacityValue">1.00</span>
         </div>
         <button id="save" title="Take Snapshot">💾</button>
         <button id="exit">❌</button>
+        <div id="modal" class="modal">
+            <div id="font">
+                <select id="font-select">
+                    <option value="Arial" selected>Arial</option>
+                    <option value="sans-serif">Sans Serif</option>
+                    <option value="serif">Serif</option>
+                    <option value="monospace">Monospace</option>
+                    <option value="Comic Sans MS">Comic Sans MS</option>
+                    <option value="Garamond">Garamond</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Tahoma">Tahoma</option>
+                    <option value="Trebuchet MS">Trebuchet MS</option>
+                    <option value="Verdana">Verdana</option>
+                </select>
+                <input type="number" title="Font Size" id="font_size" min="20" max="100" step="5" value="25"/>
+                <button id="closeModal">X</button>
+            </div>
+            <textarea id="textInput" placeholder="Add note..." autofocus></textarea>
+            <div id="submit_block">
+                <button id="clearText">Clear</button>
+                <button id="submitText">Add Text</button>
+            </div>
+        </div>
     `;
     document.body.prepend(toolbar);
 
@@ -110,9 +134,11 @@ function injectCanvas() {
         horizontalLine: document.getElementById("horizontalLine"),
         rectangle: document.getElementById("rectangle"),
         filledRectangle: document.getElementById("filledRectangle"),
+        typeText: document.getElementById("typeText"),
     };
 
     let painting = false;
+    let isTyping = false;
     let brushSize = 1;
     let highlighterSize = 15;
     let opacity = 1.0;
@@ -130,6 +156,8 @@ function injectCanvas() {
 
     // Set active tool
     function setActiveTool(tool) {
+        if (tool !== "typeText") isTyping = false;
+
         currentTool = tool;
         Object.values(tools).forEach((btn) => btn.classList.remove("active"));
         tools[tool].classList.add("active");
@@ -152,6 +180,10 @@ function injectCanvas() {
     // Start drawing
     function startPainting(e) {
         e.preventDefault();
+        if (currentTool === "typeText") {
+            isTyping = true;
+            return;
+        }
         painting = true;
 
         let pos = e.type.includes("touch") ? getTouchPos(e) : { x: e.offsetX, y: e.offsetY };
@@ -226,6 +258,7 @@ function injectCanvas() {
     canvas.addEventListener("mousemove", draw);
     canvas.addEventListener("mouseup", stopPainting);
     canvas.addEventListener("mouseout", stopPainting);
+    canvas.addEventListener("click", showModal);
 
     // Event Listeners for touch
     canvas.addEventListener("touchstart", startPainting);
@@ -241,6 +274,10 @@ function injectCanvas() {
     tools.horizontalLine.addEventListener("click", () => setActiveTool("horizontalLine"));
     tools.rectangle.addEventListener("click", () => setActiveTool("rectangle"));
     tools.filledRectangle.addEventListener("click", () => setActiveTool("filledRectangle"));
+    tools.typeText.addEventListener("click", () => {
+        isTyping = true;
+        setActiveTool("typeText");
+    });
 
     // highlighter Size
     document.getElementById("highlighterSize").addEventListener("input", (e) => {
@@ -339,7 +376,6 @@ function injectCanvas() {
         // Code for predifined color
         const colorPickerButton = colorPicker.querySelector(".color-picker-button");
         const colorSwatches = colorPicker.querySelector(".color-swatches");
-        console.log(colorSwatches);
 
         // Toggle color swatches visibility on button click
         colorPickerButton.addEventListener("click", function (event) {
@@ -374,4 +410,54 @@ function injectCanvas() {
 
     assignColor(colorPicker1, 1);
     assignColor(colorPicker2, 2);
+
+    // functions for adding text in canvas
+    function addText(x, y, text) {
+        const fontSize = document.getElementById("font_size").value;
+        const fontFamily = document.getElementById("font-select").value;
+        ctx.font = `${fontSize}px ${fontFamily}`;
+        ctx.fillStyle = color1;
+        y = y + (parseInt(fontSize) * 2.3) / 3;
+        ctx.fillText(text, x, y);
+    }
+
+    function showModal(e) {
+        if (!isTyping) return;
+
+        const modal = document.getElementById("modal");
+        modal.style.display = "block";
+
+        const submitBtn = document.getElementById("submitText");
+        const clearBtn = document.getElementById("clearText");
+        const textInput = document.getElementById("textInput");
+        const closeBtn = document.getElementById("closeModal");
+        if (textInput) textInput.focus();
+
+        // Function to handle submission
+        function submitText() {
+            if (textInput.value.trim() !== "") {
+                addText(e.offsetX, e.offsetY, textInput.value);
+            }
+            modal.style.display = "none";
+            textInput.value = "";
+        }
+
+        submitBtn.onclick = submitText;
+
+        // Listen for Shift + Enter key press
+        textInput.onkeydown = (event) => {
+            if (event.shiftKey && event.key === "Enter") {
+                event.preventDefault(); // Prevent default newline behavior
+                submitText();
+            }
+        };
+
+        clearBtn.onclick = () => {
+            textInput.value = "";
+        };
+        closeBtn.onclick = () => {
+            modal.style.display = "none";
+            textInput.value = "";
+        };
+    }
 }

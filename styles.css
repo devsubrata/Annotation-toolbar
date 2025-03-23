@@ -100,6 +100,12 @@
     z-index: 25000; /* Ensure it appears above other content */
 }
 
+@media screen and (max-width: 620px) {
+    .color-swatches {
+        grid-template-columns: repeat(5, 40px);
+    }
+}
+
 .color-swatches.visible {
     display: grid; /* Show when visible */
 }
@@ -117,4 +123,57 @@
 .color-swatch:hover {
     transform: scale(1.1); /* Slightly enlarge on hover */
     border-color: #999;
+}
+
+/* for text input */
+#modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 10px solid orange;
+    background: gold;
+    font-size: 25px;
+    margin: 0;
+    padding: 0;
+}
+
+#modal #textInput {
+    min-width: 200px;
+    min-height: 150px;
+    font-size: 25px;
+    text-align: left;
+    padding: 3px;
+}
+
+#modal #submit_block {
+    margin-top: -5px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+#font {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+}
+#font-select option {
+    text-align: left;
+}
+#closeModal {
+    display: inline-block;
+    margin-left: auto;
+}
+
+#clearText,
+#submitText {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.2s ease-in-out;
+    font-size: 14px;
 }
