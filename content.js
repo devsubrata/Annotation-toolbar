@@ -37,6 +37,7 @@ function injectToolbar() {
             <input type="range" title="Adjust opacity" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
             <span id="opacityValue">1.00</span>
         </div>
+        <button id="eraser" title="Erase">E</button>
         <button id="save" title="Take Snapshot">💾</button>
         <button id="exit">❌</button>
         <div id="modal" class="modal">
@@ -53,7 +54,7 @@ function injectToolbar() {
                     <option value="Trebuchet MS">Trebuchet MS</option>
                     <option value="Verdana">Verdana</option>
                 </select>
-                <input type="number" title="Font Size" id="font_size" min="20" max="100" step="5" value="25"/>
+                <input type="number" title="Font Size" id="font_size" min="10" max="100" step="2" value="15"/>
                 <button id="closeModal">X</button>
             </div>
             <textarea id="textInput" placeholder="Add note..." autofocus></textarea>
@@ -122,7 +123,7 @@ function injectCanvas() {
     }
 
     setupCanvas();
-    window.addEventListener("resize", setupCanvas);
+    // window.addEventListener("resize", setupCanvas);
 
     const ctx = canvas.getContext("2d");
     const brushSizeInput = document.getElementById("brushSize");
@@ -135,6 +136,7 @@ function injectCanvas() {
         rectangle: document.getElementById("rectangle"),
         filledRectangle: document.getElementById("filledRectangle"),
         typeText: document.getElementById("typeText"),
+        eraser: document.getElementById("eraser"),
     };
 
     let painting = false;
@@ -196,6 +198,7 @@ function injectCanvas() {
             case "rectangle":
             case "filledRectangle":
             case "highlighter":
+            case "eraser":
                 snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 break;
             default:
@@ -221,13 +224,17 @@ function injectCanvas() {
                 break;
             case "rectangle":
             case "filledRectangle":
+            case "eraser":
                 ctx.putImageData(snapshot, 0, 0);
                 let width = pos.x - startX;
                 let height = pos.y - startY;
                 if (currentTool === "rectangle") {
                     ctx.strokeRect(startX, startY, width, height);
-                } else {
+                } else if (currentTool === "filledRectangle") {
                     ctx.fillStyle = color2;
+                    ctx.fillRect(startX, startY, width, height);
+                } else {
+                    ctx.fillStyle = color1;
                     ctx.fillRect(startX, startY, width, height);
                 }
                 break;
@@ -274,6 +281,7 @@ function injectCanvas() {
     tools.horizontalLine.addEventListener("click", () => setActiveTool("horizontalLine"));
     tools.rectangle.addEventListener("click", () => setActiveTool("rectangle"));
     tools.filledRectangle.addEventListener("click", () => setActiveTool("filledRectangle"));
+    tools.eraser.addEventListener("click", () => setActiveTool("eraser"));
     tools.typeText.addEventListener("click", () => {
         isTyping = true;
         setActiveTool("typeText");
@@ -418,7 +426,12 @@ function injectCanvas() {
         ctx.font = `${fontSize}px ${fontFamily}`;
         ctx.fillStyle = color1;
         y = y + (parseInt(fontSize) * 2.3) / 3;
-        ctx.fillText(text, x, y);
+
+        const lines = text.split("\n");
+        lines.forEach((line) => {
+            ctx.fillText(line, x, y);
+            y += 3 + parseInt(fontSize);
+        });
     }
 
     function showModal(e) {

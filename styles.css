@@ -140,9 +140,9 @@
 }
 
 #modal #textInput {
-    min-width: 200px;
-    min-height: 150px;
-    font-size: 25px;
+    min-width: 600px;
+    min-height: 300px;
+    font-size: 20px;
     text-align: left;
     padding: 3px;
 }
