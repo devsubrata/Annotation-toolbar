@@ -29,14 +29,15 @@ function injectToolbar() {
         </div>
         <button id="clear" title="Erase everything">🆑</button>
         <div class="undo_redo">
-            <button id="undo" title="undo">↶</button>
-            <button id="redo" title="redo">↷</button>
+            <button id="undo" title="undo">↪️</button>
+            <button id="redo" title="redo">↩️</button>
         </div>
         <div class="range_div">
             <label for="opacity">🌓</label>
             <input type="range" title="Adjust opacity" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
             <span id="opacityValue">1.00</span>
         </div>
+        <button id="color_detector" title="Pick color from canvas">🔥</button>
         <button id="eraser" title="Erase">E</button>
         <button id="save" title="Take Snapshot">💾</button>
         <button id="exit">❌</button>
@@ -55,6 +56,19 @@ function injectToolbar() {
                     <option value="Verdana">Verdana</option>
                 </select>
                 <input type="number" title="Font Size" id="font_size" min="10" max="100" step="2" value="15"/>
+                <select id="bullet">
+                    <option value="✅" selected>✅</option>
+                    <option value="☑️">☑️</option>
+                    <option value="✔️">✔️</option>
+                    <option value="➡️">➡️</option>
+                    <option value="🟥">🟥</option>
+                    <option value="🟩">🟩</option>
+                    <option value="🟦">🟦</option>
+                    <option value="🔢">🔢</option>
+                    <option value="ABC">ABC</option>
+                    <option value="abc">abc</option>
+                </select>
+                <button id="addBullet">Add Marker</button>
                 <button id="closeModal">X</button>
             </div>
             <textarea id="textInput" placeholder="Add note..." autofocus></textarea>
@@ -137,6 +151,7 @@ function injectCanvas() {
         filledRectangle: document.getElementById("filledRectangle"),
         typeText: document.getElementById("typeText"),
         eraser: document.getElementById("eraser"),
+        eyeDropperTool: document.getElementById("color_detector"),
     };
 
     let painting = false;
@@ -186,6 +201,8 @@ function injectCanvas() {
             isTyping = true;
             return;
         }
+        if (currentTool === "eyeDropperTool") return;
+
         painting = true;
 
         let pos = e.type.includes("touch") ? getTouchPos(e) : { x: e.offsetX, y: e.offsetY };
@@ -265,7 +282,33 @@ function injectCanvas() {
     canvas.addEventListener("mousemove", draw);
     canvas.addEventListener("mouseup", stopPainting);
     canvas.addEventListener("mouseout", stopPainting);
-    canvas.addEventListener("click", showModal);
+    canvas.addEventListener("click", (e) => {
+        if (currentTool === "eyeDropperTool") {
+            canvas.style.pointerEvents = "none";
+            const element = document.elementFromPoint(e.clientX, e.clientY);
+            canvas.style.pointerEvents = "auto";
+            if (element) {
+                color1 = getBackgroundColor(element);
+                if (color1 === "None") return;
+                colorPicker1.children[0].style.backgroundColor = color1;
+            }
+        } else {
+            showModal(e);
+        }
+        // Function to get the actual background color
+        function getBackgroundColor(el) {
+            while (el) {
+                let bgColor = window.getComputedStyle(el).backgroundColor;
+                // If the color is not transparent, return it
+                if (bgColor !== "rgba(0, 0, 0, 0)" && bgColor !== "transparent") return bgColor;
+                // let color = window.getComputedStyle(el).color;
+                // if (color !== "rgba(0, 0, 0, 0)" && color !== "transparent") return color;
+                // Move up to the parent element
+                el = el.parentElement;
+            }
+            return "None"; // Fallback if no color is detected
+        }
+    });
 
     // Event Listeners for touch
     canvas.addEventListener("touchstart", startPainting);
@@ -282,6 +325,7 @@ function injectCanvas() {
     tools.rectangle.addEventListener("click", () => setActiveTool("rectangle"));
     tools.filledRectangle.addEventListener("click", () => setActiveTool("filledRectangle"));
     tools.eraser.addEventListener("click", () => setActiveTool("eraser"));
+    tools.eyeDropperTool.addEventListener("click", () => setActiveTool("eyeDropperTool"));
     tools.typeText.addEventListener("click", () => {
         isTyping = true;
         setActiveTool("typeText");
@@ -440,11 +484,53 @@ function injectCanvas() {
         const modal = document.getElementById("modal");
         modal.style.display = "block";
 
+        const bullet = document.getElementById("bullet");
+        const addBulletBtn = document.getElementById("addBullet");
         const submitBtn = document.getElementById("submitText");
         const clearBtn = document.getElementById("clearText");
         const textInput = document.getElementById("textInput");
         const closeBtn = document.getElementById("closeModal");
         if (textInput) textInput.focus();
+
+        let autoNumber = 0;
+        let autoLetterIndex = 0;
+        const numbers = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+        // Remove any existing event listener to avoid duplication
+        addBulletBtn.replaceWith(addBulletBtn.cloneNode(true));
+        const newAddBulletBtn = document.getElementById("addBullet");
+
+        newAddBulletBtn.addEventListener("click", () => {
+            let currentBullet = bullet.value;
+
+            if (currentBullet === "🔢") {
+                currentBullet = numbers[autoNumber];
+                autoNumber = (autoNumber + 1) % numbers.length; // Increment and reset after 🔟
+            }
+            if (currentBullet === "ABC") {
+                currentBullet = letters[autoLetterIndex] + "). ";
+                autoLetterIndex = (autoLetterIndex + 1) % letters.length;
+            }
+            if (currentBullet === "abc") {
+                currentBullet = letters[autoLetterIndex].toLowerCase() + "). ";
+                autoLetterIndex = (autoLetterIndex + 1) % letters.length;
+            }
+
+            // Get current cursor position
+            let start = textInput.selectionStart;
+            let end = textInput.selectionEnd;
+
+            // Insert bullet at cursor position
+            let text = textInput.value;
+            textInput.value = text.slice(0, start) + currentBullet + text.slice(end);
+
+            // Move cursor after the inserted bullet
+            textInput.selectionStart = textInput.selectionEnd = start + currentBullet.length;
+
+            // Focus back on textInput
+            textInput.focus();
+        });
 
         // Function to handle submission
         function submitText() {
@@ -467,10 +553,14 @@ function injectCanvas() {
 
         clearBtn.onclick = () => {
             textInput.value = "";
+            autoNumber = 0;
+            autoLetterIndex = 0;
         };
         closeBtn.onclick = () => {
             modal.style.display = "none";
             textInput.value = "";
+            autoNumber = 0;
+            autoLetterIndex = 0;
         };
     }
 }
