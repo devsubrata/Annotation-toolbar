@@ -137,14 +137,17 @@
     font-size: 25px;
     margin: 0;
     padding: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 #modal #textInput {
-    min-width: 600px;
-    min-height: 300px;
+    width: 600px;
+    height: 300px;
     font-size: 20px;
     text-align: left;
     padding: 3px;
+    outline: none;
+    border: 3px solid #777;
 }
 
 #modal #submit_block {
@@ -153,11 +156,15 @@
     justify-content: flex-end;
 }
 
-#font {
+#modal-header {
     margin: 0;
     display: flex;
     justify-content: center;
 }
+#modal-header #bullet {
+    margin-left: 3px;
+}
+
 #font-select option {
     text-align: left;
 }
@@ -166,6 +173,7 @@
     margin-left: auto;
 }
 
+#modal-header button,
 #clearText,
 #submitText {
     background: #007bff;
@@ -176,4 +184,9 @@
     cursor: pointer;
     transition: 0.2s ease-in-out;
     font-size: 14px;
+}
+
+#modal-header #addBullet {
+    border-radius: 0;
+    padding: 5px 8px;
 }

@@ -42,7 +42,7 @@ function injectToolbar() {
         <button id="save" title="Take Snapshot">💾</button>
         <button id="exit">❌</button>
         <div id="modal" class="modal">
-            <div id="font">
+            <div id="modal-header">
                 <select id="font-select">
                     <option value="Arial" selected>Arial</option>
                     <option value="sans-serif">Sans Serif</option>
@@ -64,6 +64,7 @@ function injectToolbar() {
                     <option value="🟥">🟥</option>
                     <option value="🟩">🟩</option>
                     <option value="🟦">🟦</option>
+                    <option value="=>">=></option>
                     <option value="🔢">🔢</option>
                     <option value="ABC">ABC</option>
                     <option value="abc">abc</option>
@@ -483,6 +484,7 @@ function injectCanvas() {
 
         const modal = document.getElementById("modal");
         modal.style.display = "block";
+        const modalHeader = document.getElementById("modal-header");
 
         const bullet = document.getElementById("bullet");
         const addBulletBtn = document.getElementById("addBullet");
@@ -537,6 +539,9 @@ function injectCanvas() {
             if (textInput.value.trim() !== "") {
                 addText(e.offsetX, e.offsetY, textInput.value);
             }
+            modal.style.top = "50%";
+            modal.style.left = "50%";
+            modal.style.transform = "translate(-50%, -50%)";
             modal.style.display = "none";
             textInput.value = "";
         }
@@ -558,9 +563,64 @@ function injectCanvas() {
         };
         closeBtn.onclick = () => {
             modal.style.display = "none";
+            modal.style.top = "50%";
+            modal.style.left = "50%";
+            modal.style.transform = "translate(-50%, -50%)";
             textInput.value = "";
             autoNumber = 0;
             autoLetterIndex = 0;
         };
+
+        // Draggable feature for Note taking window
+        function makeDraggable(element, dragHandle) {
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            // Use the element itself if no handle provided
+            dragHandle = dragHandle || element;
+
+            dragHandle.addEventListener("mousedown", function (e) {
+                if (e.target !== this) return;
+                // Only left mouse button
+                if (e.button !== 0) return;
+
+                isDragging = true;
+
+                // Get element's current position
+                const rect = element.getBoundingClientRect();
+
+                // Calculate offset between mouse and element position
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+
+                // Ensure element is positioned (absolute or fixed)
+                element.style.position = "fixed";
+                element.style.left = rect.left + "px";
+                element.style.top = rect.top + "px";
+
+                // Remove transform to allow free positioning
+                modal.style.transform = "none";
+
+                // Prevent text selection and other default behaviors
+                e.preventDefault();
+            });
+
+            document.addEventListener("mousemove", function (e) {
+                if (!isDragging) return;
+
+                // Calculate new position
+                const x = e.clientX - offsetX;
+                const y = e.clientY - offsetY;
+
+                // Update element position
+                element.style.left = x + "px";
+                element.style.top = y + "px";
+            });
+
+            document.addEventListener("mouseup", function () {
+                isDragging = false;
+            });
+        }
+        makeDraggable(modal, modalHeader);
     }
 }
