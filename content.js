@@ -6,6 +6,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+function consoleLog(log) {
+    chrome.runtime.sendMessage({ action: "logMessage", msg: log });
+}
+
 function injectToolbar() {
     let toolbar = document.createElement("div");
     toolbar.id = "custom-toolbar";
@@ -15,27 +19,28 @@ function injectToolbar() {
         <div class="color-picker"></div>
         <div class="highlight_div">
             <button id="highlight" title="Highlight Text">🎨</button>
-            <input type="number" id="highlighterSize" min="10" max="50" value="15" step="5"/>
+            <input type="number" id="highlighterSize" min="10" max="50" value="23" step="5"/>
         </div>
         <button id="typeText" title="Add text">T</button>
         <button id="filledRectangle" title="Filled rectangle">▆</button>
         <button id="brush" class="active">🖌️</button>
         <button id="horizontalLine" title="straight line">==</button>
         <button id="rectangle" title="Rectangle">▭</button>
+        <button id="circle" title="Circle">🔘</button>
+        <button id="filledCircle" title="Filled circle">⚫</button>
         <div class="range_div">
             <label for="brushSize">Size</label>
-            <input type="range" id="brushSize" title="Adjust brush, line width" min="1" max="50" value="1" />
-            <span id="rangeValue">01</span>
+            <input type="number" id="brushSize" title="Adjust brush, line width" min="1" max="50" value="2" />
         </div>
+        <button id="search" title="Search online">🔍</button>
         <button id="clear" title="Erase everything">🆑</button>
         <div class="undo_redo">
             <button id="undo" title="undo">↪️</button>
             <button id="redo" title="redo">↩️</button>
         </div>
-        <div class="range_div">
+        <div class="opacity_control">
             <label for="opacity">🌓</label>
-            <input type="range" title="Adjust opacity" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
-            <span id="opacityValue">1.00</span>
+            <input type="number" title="Adjust opacity" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
         </div>
         <button id="color_detector" title="Pick color from canvas">🔥</button>
         <button id="eraser" title="Erase">E</button>
@@ -55,16 +60,19 @@ function injectToolbar() {
                     <option value="Trebuchet MS">Trebuchet MS</option>
                     <option value="Verdana">Verdana</option>
                 </select>
-                <input type="number" title="Font Size" id="font_size" min="10" max="100" step="2" value="15"/>
+                <input type="number" title="Font Size" id="font_size" min="10" max="100" step="2" value="16"/>
                 <select id="bullet">
-                    <option value="✅" selected>✅</option>
-                    <option value="☑️">☑️</option>
-                    <option value="✔️">✔️</option>
-                    <option value="➡️">➡️</option>
-                    <option value="🟥">🟥</option>
-                    <option value="🟩">🟩</option>
-                    <option value="🟦">🟦</option>
-                    <option value="=>">=></option>
+                    <option value="     ">5 Space</option>
+                    <option value="✅">✅</option>
+                    <option value="➡️" selected>➡️</option>
+                    <option value=" ⟹ ">⟹</option>
+                    <option value=" ➜ ">➜</option>
+                    <option value=" ★ ">★</option>
+                    <option value="     ⟹ ">▆⟹</option>
+                    <option value="     ➜ ">▆➜</option>
+                    <option value="     ★ ">▆★</option>
+                    <option value="🔯">🔯</option>
+                    <option value="⚝ ">⚝</option>
                     <option value="🔢">🔢</option>
                     <option value="ABC">ABC</option>
                     <option value="abc">abc</option>
@@ -77,6 +85,14 @@ function injectToolbar() {
                 <button id="clearText">Clear</button>
                 <button id="submitText">Add Text</button>
             </div>
+        </div>
+        <div id="search-modal" class="search-modal">
+            <select id="search_options"></select>
+            <input type="text" id="searchInput" placeholder="Enter a word...">
+            <button id="searchButton">🔍</button>
+            <button id="clearSearchInput">Clear</button>
+            <input type="checkbox" id="newTab" title="Open in new tab">
+            <button id="closeSearchModal">❌</button>
         </div>
     `;
     document.body.prepend(toolbar);
@@ -138,7 +154,6 @@ function injectCanvas() {
     }
 
     setupCanvas();
-    // window.addEventListener("resize", setupCanvas);
 
     const ctx = canvas.getContext("2d");
     const brushSizeInput = document.getElementById("brushSize");
@@ -153,12 +168,14 @@ function injectCanvas() {
         typeText: document.getElementById("typeText"),
         eraser: document.getElementById("eraser"),
         eyeDropperTool: document.getElementById("color_detector"),
+        circle: document.getElementById("circle"),
+        filledCircle: document.getElementById("filledCircle"),
     };
 
     let painting = false;
     let isTyping = false;
-    let brushSize = 1;
-    let highlighterSize = 15;
+    let brushSize = 2;
+    let highlighterSize = 23;
     let opacity = 1.0;
     let color1 = `rgba(0,0,0,${opacity})`;
     let color2 = `rgba(255, 255, 0, 0.4)`;
@@ -174,6 +191,7 @@ function injectCanvas() {
 
     // Set active tool
     function setActiveTool(tool) {
+        consoleLog(tool);
         if (tool !== "typeText") isTyping = false;
 
         currentTool = tool;
@@ -215,6 +233,8 @@ function injectCanvas() {
         switch (currentTool) {
             case "rectangle":
             case "filledRectangle":
+            case "circle":
+            case "filledCircle":
             case "highlighter":
             case "eraser":
                 snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -254,6 +274,19 @@ function injectCanvas() {
                 } else {
                     ctx.fillStyle = color1;
                     ctx.fillRect(startX, startY, width, height);
+                }
+                break;
+            case "circle":
+            case "filledCircle":
+                ctx.putImageData(snapshot, 0, 0);
+                const radius = Math.sqrt((startX - pos.x) ** 2 + (startY - pos.y) ** 2);
+                ctx.beginPath();
+                ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+                if (currentTool === "circle") {
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = color1;
+                    ctx.fill();
                 }
                 break;
             case "highlighter":
@@ -331,6 +364,8 @@ function injectCanvas() {
         isTyping = true;
         setActiveTool("typeText");
     });
+    tools.circle.addEventListener("click", () => setActiveTool("circle"));
+    tools.filledCircle.addEventListener("click", () => setActiveTool("filledCircle"));
 
     // highlighter Size
     document.getElementById("highlighterSize").addEventListener("input", (e) => {
@@ -340,8 +375,6 @@ function injectCanvas() {
     // Brush Size
     brushSizeInput.addEventListener("input", (e) => {
         brushSize = e.target.value;
-        document.getElementById("rangeValue").textContent =
-            parseInt(brushSize) >= 10 ? brushSize : `0${brushSize}`;
     });
 
     // Clear Canvas
@@ -366,9 +399,7 @@ function injectCanvas() {
     // Opacity Control
     document.getElementById("opacity").addEventListener("input", (e) => {
         opacity = e.target.value;
-        document.getElementById("opacityValue").textContent = parseFloat(opacity).toFixed(2);
-
-        const { r, g, b } = extractRGB(color2);
+        const { r, g, b } = extractRGB(color1);
         color1 = `rgba(${r}, ${g}, ${b}, ${opacity})`;
         document.getElementById("activeColor").style.backgroundColor = color1;
     });
@@ -484,6 +515,7 @@ function injectCanvas() {
 
         const modal = document.getElementById("modal");
         modal.style.display = "block";
+        disableScroll();
         const modalHeader = document.getElementById("modal-header");
 
         const bullet = document.getElementById("bullet");
@@ -538,11 +570,13 @@ function injectCanvas() {
         function submitText() {
             if (textInput.value.trim() !== "") {
                 addText(e.offsetX, e.offsetY, textInput.value);
+                navigator.clipboard.writeText(textInput.value);
             }
             modal.style.top = "50%";
             modal.style.left = "50%";
             modal.style.transform = "translate(-50%, -50%)";
             modal.style.display = "none";
+            enableScroll();
             textInput.value = "";
         }
 
@@ -563,6 +597,7 @@ function injectCanvas() {
         };
         closeBtn.onclick = () => {
             modal.style.display = "none";
+            enableScroll();
             modal.style.top = "50%";
             modal.style.left = "50%";
             modal.style.transform = "translate(-50%, -50%)";
@@ -570,37 +605,28 @@ function injectCanvas() {
             autoNumber = 0;
             autoLetterIndex = 0;
         };
-
-        // Draggable feature for Note taking window
         function makeDraggable(element, dragHandle) {
             let isDragging = false;
             let offsetX, offsetY;
-
             // Use the element itself if no handle provided
             dragHandle = dragHandle || element;
-
             dragHandle.addEventListener("mousedown", function (e) {
                 if (e.target !== this) return;
                 // Only left mouse button
                 if (e.button !== 0) return;
 
                 isDragging = true;
-
                 // Get element's current position
                 const rect = element.getBoundingClientRect();
-
                 // Calculate offset between mouse and element position
                 offsetX = e.clientX - rect.left;
                 offsetY = e.clientY - rect.top;
-
                 // Ensure element is positioned (absolute or fixed)
                 element.style.position = "fixed";
                 element.style.left = rect.left + "px";
                 element.style.top = rect.top + "px";
-
                 // Remove transform to allow free positioning
                 modal.style.transform = "none";
-
                 // Prevent text selection and other default behaviors
                 e.preventDefault();
             });
@@ -622,5 +648,110 @@ function injectCanvas() {
             });
         }
         makeDraggable(modal, modalHeader);
+
+        // Stop scrolling document when mouse on modal
+        function disableScroll() {
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            document.body.style.overflow = "hidden";
+            document.body.style.paddingRight = `${scrollbarWidth}px`; // Prevents content shift
+        }
+
+        function enableScroll() {
+            document.body.style.overflow = "";
+            document.body.style.paddingRight = ""; // Reset padding
+        }
     }
+    // for look a terms from various links
+    const search_links = {
+        "Google search": "https://www.google.com/search?q={search_term}",
+        "Cambridge dictionary": "https://dictionary.cambridge.org/dictionary/english/{search_term}",
+        "Longman dictionary": "https://www.ldoceonline.com/dictionary/{search_term}",
+        "Oxford dictionary":
+            "https://www.oxfordlearnersdictionaries.com/definition/english/{search_term}",
+        "Webster dictionary": "https://www.merriam-webster.com/dictionary/{search_term}",
+        "Collins dictionary": "https://www.collinsdictionary.com/dictionary/english/{search_term}",
+        "vocabulary.com": "https://www.vocabulary.com/dictionary/{search_term}",
+        "dictionary.com": "https://www.dictionary.com/browse/{search_term}",
+        "Youglish.com": "https://youglish.com/pronounce/{search_term}/english",
+        "Image search": "https://www.google.com/search?tbm=isch&q={search_term}",
+        "Google Map": "https://www.google.com/maps/place/{search_term}",
+        Wikipedia: "https://en.wikipedia.org/wiki/{search_term}",
+        "Youtube search": "https://www.youtube.com/results?search_query={search_term}",
+        "Facebook search": "https://www.facebook.com/search/top/?q={search_term}",
+        "News search": "https://www.google.com/search?tbm=nws&q={search_term}",
+        "Pdf search": "https://www.google.com/search?q={search_term}&as_filetype=pdf",
+        "Book library": "https://www.libgen.is/search.php?req={search_term}",
+        Github: "https://github.com/search?q={search_term}",
+    };
+    // Populate the select element
+    const search_options = document.getElementById("search_options");
+    Object.keys(search_links).forEach((key) => {
+        const option = document.createElement("option");
+        option.value = search_links[key];
+        option.textContent = key;
+        search_options.appendChild(option);
+    });
+
+    document.getElementById("search").addEventListener("click", () => {
+        const search_modal = document.getElementById("search-modal");
+        search_modal.style.display = "flex";
+        makeDraggable(search_modal);
+
+        document.getElementById("closeSearchModal").addEventListener("click", () => {
+            search_modal.style.display = "none";
+            search_modal.style.top = "25%";
+            search_modal.style.left = "50%";
+            search_modal.style.transform = "translate(-50%, -50%)";
+            document.getElementById("searchInput").value = "";
+        });
+
+        const searchBtn = document.getElementById("searchButton");
+        searchBtn.replaceWith(searchBtn.cloneNode(true));
+
+        const searchInput = document.getElementById("searchInput");
+        const newSearchBtn = document.getElementById("searchButton");
+        function searchTerm() {
+            const link = search_options.value;
+            const searchTerm = searchInput.value.trim();
+            if (!searchTerm) {
+                alert("No input for search");
+                return;
+            }
+            const url = link.replace("{search_term}", searchTerm);
+
+            const isNewTabChecked = document.getElementById("newTab").checked;
+            if (isNewTabChecked) window.open(url, "_blank");
+            else {
+                const windowFeatures = "left=0,top=0,width=800,height=1200";
+                window.open(url, "_blank", windowFeatures);
+            }
+        }
+        newSearchBtn.addEventListener("click", searchTerm);
+        searchInput.onkeydown = (e) => {
+            if (e.key === "Enter") searchTerm();
+        };
+
+        document.getElementById("clearSearchInput").addEventListener("click", () => {
+            document.getElementById("searchInput").value = "";
+        });
+        function makeDraggable(element) {
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            element.addEventListener("mousedown", (e) => {
+                if (e.target !== element) return;
+
+                isDragging = true;
+                offsetX = e.clientX - element.offsetLeft;
+                offsetY = e.clientY - element.offsetTop;
+            });
+
+            document.addEventListener("mousemove", (e) => {
+                if (!isDragging) return;
+                element.style.left = `${e.clientX - offsetX}px`;
+                element.style.top = `${e.clientY - offsetY}px`;
+            });
+            document.addEventListener("mouseup", () => (isDragging = false));
+        }
+    });
 }
