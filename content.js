@@ -44,7 +44,7 @@ function injectToolbar() {
         </div>
         <button id="color_detector" title="Pick color from canvas">🔥</button>
         <button id="eraser" title="Erase">E</button>
-        <button id="save" title="Take Snapshot">💾</button>
+        <button id="save" title="Take Snapshot">📸</button>
         <button id="exit">❌</button>
         <div id="modal" class="modal">
             <div id="modal-header">
@@ -65,12 +65,12 @@ function injectToolbar() {
                     <option value="     ">5 Space</option>
                     <option value="✅">✅</option>
                     <option value="➡️" selected>➡️</option>
-                    <option value=" ⟹ ">⟹</option>
+                    <option value=" ⇒ ">⇒</option>
                     <option value=" ➜ ">➜</option>
                     <option value=" ★ ">★</option>
-                    <option value="     ⟹ ">▆⟹</option>
-                    <option value="     ➜ ">▆➜</option>
-                    <option value="     ★ ">▆★</option>
+                    <option value="     ⇒ ">tab⟹</option>
+                    <option value="     ➜ ">tab➜</option>
+                    <option value="     ★ ">tab★</option>
                     <option value="🔯">🔯</option>
                     <option value="⚝ ">⚝</option>
                     <option value="🔢">🔢</option>
@@ -382,19 +382,7 @@ function injectCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
 
-    document.getElementById("save").addEventListener("click", () => {
-        html2canvas(document.body, {
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: document.documentElement.scrollWidth,
-            windowHeight: document.documentElement.scrollHeight,
-        }).then((canvas) => {
-            const link = document.createElement("a");
-            link.download = "annotated_page.png";
-            link.href = canvas.toDataURL("image/png");
-            link.click();
-        });
-    });
+    document.getElementById("save").addEventListener("click", startFullPageCapture);
 
     // Opacity Control
     document.getElementById("opacity").addEventListener("input", (e) => {
@@ -754,4 +742,68 @@ function injectCanvas() {
             document.addEventListener("mouseup", () => (isDragging = false));
         }
     });
+}
+
+async function startFullPageCapture() {
+    const originalScrollY = window.scrollY;
+    const viewportHeight = window.innerHeight;
+    const totalHeight = document.body.scrollHeight;
+    const numScreenshots = Math.ceil(totalHeight / viewportHeight);
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = totalHeight;
+
+    // Hide fixed/sticky elements
+    const hiddenElements = [];
+    document.querySelectorAll("*").forEach((el) => {
+        const style = window.getComputedStyle(el);
+        if (style.position === "fixed" || style.position === "sticky") {
+            hiddenElements.push({
+                element: el,
+                originalDisplay: el.style.display,
+            });
+            el.style.display = "none";
+        }
+    });
+
+    const images = [];
+
+    for (let i = 0; i < numScreenshots; i++) {
+        window.scrollTo(0, i * viewportHeight);
+        await new Promise((resolve) => setTimeout(resolve, 500)); // wait for rendering
+
+        const dataUrl = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ action: "capture" }, resolve);
+        });
+
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise((resolve) => (img.onload = resolve));
+        images.push(img);
+    }
+
+    // Restore hidden elements
+    for (const { element, originalDisplay } of hiddenElements) {
+        element.style.display = originalDisplay;
+    }
+
+    window.scrollTo(0, originalScrollY); // restore scroll
+
+    // Stitch image
+    let y = 0;
+    for (const img of images) {
+        context.drawImage(img, 0, y);
+        y += img.height;
+    }
+
+    const finalImage = canvas.toDataURL("image/png");
+
+    // Download
+    const a = document.createElement("a");
+    a.href = finalImage;
+    a.download = `fullpage-${Date.now()}.png`;
+    a.click();
 }
