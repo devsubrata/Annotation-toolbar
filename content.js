@@ -10,6 +10,42 @@ function consoleLog(log) {
     chrome.runtime.sendMessage({ action: "logMessage", msg: log });
 }
 
+const colorSet = `
+    <div class="color-swatch" data-color="#ffffff" style="background-color: #ffffff"></div>
+    <div class="color-swatch" data-color="#000000" style="background-color: #000000"></div>
+    <div class="color-swatch" data-color="#ff0000" style="background-color: #ff0000"></div>
+    <div class="color-swatch" data-color="#f43f5e" style="background-color: #f43f5e"></div>
+    <div class="color-swatch" data-color="#9f1239" style="background-color: #9f1239"></div>
+    <div class="color-swatch" data-color="#4B0001" style="background-color: #4B0001"></div>
+    <div class="color-swatch" data-color="#964B00" style="background-color: #964B00"></div>
+    <div class="color-swatch" data-color="#BE5103" style="background-color: #BE5103"></div>
+    <div class="color-swatch" data-color="#ffa500" style="background-color: #ffa500"></div>
+    <div class="color-swatch" data-color="#00ff00" style="background-color: #00ff00"></div>
+    <div class="color-swatch" data-color="#009c1a" style="background-color: #009c1a"></div>
+    <div class="color-swatch" data-color="#429A31" style="background-color: #429A31"></div>
+    <div class="color-swatch" data-color="#84cc16" style="background-color: #84cc16"></div>
+    <div class="color-swatch" data-color="#365314" style="background-color: #365314"></div>
+    <div class="color-swatch" data-color="#134e4a" style="background-color: #134e4a"></div>
+    <div class="color-swatch" data-color="#050372" style="background-color: #050372"></div>
+    <div class="color-swatch" data-color="#0000ff" style="background-color: #040405"></div>
+    <div class="color-swatch" data-color="#0047ab" style="background-color: #0047ab"></div>
+    <div class="color-swatch" data-color="#2B0057" style="background-color: #2B0057"></div>
+    <div class="color-swatch" data-color="#51158C" style="background-color: #51158C"></div>
+    <div class="color-swatch" data-color="#7F00FF" style="background-color: #7F00FF"></div>
+    <div class="color-swatch" data-color="#B163FF" style="background-color: #B163FF"></div>
+    <div class="color-swatch" data-color="#ff00ff" style="background-color: #ff00ff"></div>
+    <div class="color-swatch" data-color="#0e98ba" style="background-color: #0e98ba"></div>
+    <div class="color-swatch" data-color="#00ffff" style="background-color: #00ffff"></div>
+    <div class="color-swatch" data-color="#ffff00" style="background-color: #ffff00"></div>
+`;
+
+const colors = `
+            <div class="color-picker-button" title="Color Picker"></div>
+            <div class="color-swatches">
+                ${colorSet}
+            </div>
+`;
+
 function injectToolbar() {
     let toolbar = document.createElement("div");
     toolbar.id = "custom-toolbar";
@@ -21,16 +57,15 @@ function injectToolbar() {
             <button id="highlight" title="Highlight Text">🎨</button>
             <input type="number" id="highlighterSize" min="10" max="50" value="23" step="5"/>
         </div>
-        <button id="typeText" title="Add text">T</button>
         <button id="filledRectangle" title="Filled rectangle">▆</button>
-        <button id="brush" class="active">🖌️</button>
-        <button id="horizontalLine" title="straight line">==</button>
+        <button id="typeText" title="Add text">T</button>
+        <button id="horizontalLine" title="straight line" class="active">__</button>
         <button id="rectangle" title="Rectangle">▭</button>
         <button id="circle" title="Circle">🔘</button>
-        <button id="filledCircle" title="Filled circle">⚫</button>
+        <button id="brush" title="Brush">🖌️</button>
         <div class="range_div">
-            <label for="brushSize">Size</label>
-            <input type="number" id="brushSize" title="Adjust brush, line width" min="1" max="50" value="2" />
+            <select id="line-type" class="line-type" title="Select line type"></select>
+            <input type="number" id="brushSize" title="Adjust line, rect, brush, circle, stroke-width" min="1" max="50" value="2" />
         </div>
         <button id="search" title="Search online">🔍</button>
         <button id="clear" title="Erase everything">🆑</button>
@@ -43,6 +78,7 @@ function injectToolbar() {
             <input type="number" title="Adjust opacity" id="opacity" min="0.00" max="1.00" step="0.01" value="1" />
         </div>
         <button id="color_detector" title="Pick color from canvas">🔥</button>
+        <button id="filledCircle" title="Filled circle">⚫</button>
         <button id="eraser" title="Erase">E</button>
         <button id="save" title="Take Snapshot">📸</button>
         <button id="exit">❌</button>
@@ -60,6 +96,7 @@ function injectToolbar() {
                     <option value="Trebuchet MS">Trebuchet MS</option>
                     <option value="Verdana">Verdana</option>
                 </select>
+                <div class="text-color-picker"></div>
                 <input type="number" title="Font Size" id="font_size" min="10" max="100" step="2" value="16"/>
                 <select id="bullet">
                     <option value="     ">5 Space</option>
@@ -96,38 +133,6 @@ function injectToolbar() {
         </div>
     `;
     document.body.prepend(toolbar);
-
-    const colors = `
-            <div class="color-picker-button" title="Color Picker"></div>
-            <div class="color-swatches">
-                <div class="color-swatch" data-color="#ffffff" style="background-color: #ffffff"></div>
-                <div class="color-swatch" data-color="#000000" style="background-color: #000000"></div>
-                <div class="color-swatch" data-color="#ff0000" style="background-color: #ff0000"></div>
-                <div class="color-swatch" data-color="#f43f5e" style="background-color: #f43f5e"></div>
-                <div class="color-swatch" data-color="#9f1239" style="background-color: #9f1239"></div>
-                <div class="color-swatch" data-color="#4B0001" style="background-color: #4B0001"></div>
-                <div class="color-swatch" data-color="#964B00" style="background-color: #964B00"></div>
-                <div class="color-swatch" data-color="#BE5103" style="background-color: #BE5103"></div>
-                <div class="color-swatch" data-color="#ffa500" style="background-color: #ffa500"></div>
-                <div class="color-swatch" data-color="#00ff00" style="background-color: #00ff00"></div>
-                <div class="color-swatch" data-color="#009c1a" style="background-color: #009c1a"></div>
-                <div class="color-swatch" data-color="#429A31" style="background-color: #429A31"></div>
-                <div class="color-swatch" data-color="#84cc16" style="background-color: #84cc16"></div>
-                <div class="color-swatch" data-color="#365314" style="background-color: #365314"></div>
-                <div class="color-swatch" data-color="#134e4a" style="background-color: #134e4a"></div>
-                <div class="color-swatch" data-color="#050372" style="background-color: #050372"></div>
-                <div class="color-swatch" data-color="#0000ff" style="background-color: #0000ff"></div>
-                <div class="color-swatch" data-color="#0047ab" style="background-color: #0047ab"></div>
-                <div class="color-swatch" data-color="#2B0057" style="background-color: #2B0057"></div>
-                <div class="color-swatch" data-color="#51158C" style="background-color: #51158C"></div>
-                <div class="color-swatch" data-color="#7F00FF" style="background-color: #7F00FF"></div>
-                <div class="color-swatch" data-color="#B163FF" style="background-color: #B163FF"></div>
-                <div class="color-swatch" data-color="#ff00ff" style="background-color: #ff00ff"></div>
-                <div class="color-swatch" data-color="#0e98ba" style="background-color: #0e98ba"></div>
-                <div class="color-swatch" data-color="#00ffff" style="background-color: #00ffff"></div>
-                <div class="color-swatch" data-color="#ffff00" style="background-color: #ffff00"></div>
-            </div>
-    `;
 
     const colorPickers = document.querySelectorAll(".color-picker");
     colorPickers.forEach((colorPicker) => {
@@ -177,9 +182,10 @@ function injectCanvas() {
     let brushSize = 2;
     let highlighterSize = 23;
     let opacity = 1.0;
-    let color1 = `rgba(0,0,0,${opacity})`;
+    let color1 = `rgba(0,0,255,${opacity})`;
     let color2 = `rgba(255, 255, 0, 0.4)`;
-    let currentTool = "brush";
+    let textColor = `#0000ff`;
+    let currentTool = "horizontalLine";
     let startX, startY;
     let snapshot; // Store canvas state before drawing a rectangle
     const undoStack = [];
@@ -189,9 +195,30 @@ function injectCanvas() {
     colorPicker1.children[0].style.backgroundColor = color1;
     colorPicker2.children[0].style.backgroundColor = color2;
 
+    // pupulate line type
+    function populateLineType() {
+        const lineDict = {
+            _____: "[]",
+            "5,5": "[5, 5]",
+            "10,5": "[10, 5]",
+            "10,8": "[10, 8]",
+            "10,10": "[10, 10]",
+            "20,10": "[20, 10]",
+            "20,15": "[20, 15]",
+        };
+        const lineContainer = document.getElementById("line-type");
+        Object.keys(lineDict).forEach((key) => {
+            const option = document.createElement("option");
+            option.value = lineDict[key];
+            option.textContent = key;
+            lineContainer.appendChild(option);
+        });
+    }
+    populateLineType();
+
     // Set active tool
     function setActiveTool(tool) {
-        consoleLog(tool);
+        // consoleLog(tool);
         if (tool !== "typeText") isTyping = false;
 
         currentTool = tool;
@@ -252,8 +279,12 @@ function injectCanvas() {
         let pos = e.type.includes("touch") ? getTouchPos(e) : { x: e.offsetX, y: e.offsetY };
 
         ctx.lineWidth = brushSize;
-        ctx.lineCap = "round";
+        ctx.lineCap = "square";
         ctx.strokeStyle = color1;
+
+        // Set line dash: [dashLength, gapLength]
+        const dashArray = JSON.parse(document.getElementById("line-type").value);
+        ctx.setLineDash(dashArray);
 
         switch (currentTool) {
             case "horizontalLine":
@@ -483,12 +514,38 @@ function injectCanvas() {
     assignColor(colorPicker1, 1);
     assignColor(colorPicker2, 2);
 
+    function assignTextColor(colorPicker) {
+        const colorSwatches = colorPicker.querySelector(".color-swatches");
+        // Toggle swatch visibility when the picker is clicked
+        colorPicker.addEventListener("click", function (event) {
+            event.stopPropagation();
+            colorSwatches.classList.toggle("visible");
+        });
+
+        // Handle swatch selection
+        colorSwatches.querySelectorAll(".color-swatch").forEach((swatch) => {
+            swatch.addEventListener("click", function (event) {
+                event.stopPropagation(); // stop bubbling event fires from colorPicker
+                const selectedColor = this.getAttribute("data-color");
+                colorPicker.style.backgroundColor = selectedColor;
+                colorSwatches.classList.remove("visible");
+                textColor = selectedColor;
+            });
+        });
+
+        // Hide the color swatches if click is outside the picker
+        document.addEventListener("click", function (event) {
+            if (!event.target.closest(".text-color-picker"))
+                colorSwatches.classList.remove("visible");
+        });
+    }
+
     // functions for adding text in canvas
     function addText(x, y, text) {
         const fontSize = document.getElementById("font_size").value;
         const fontFamily = document.getElementById("font-select").value;
         ctx.font = `${fontSize}px ${fontFamily}`;
-        ctx.fillStyle = color1;
+        ctx.fillStyle = textColor;
         y = y + (parseInt(fontSize) * 2.3) / 3;
 
         const lines = text.split("\n");
@@ -518,6 +575,10 @@ function injectCanvas() {
         let autoLetterIndex = 0;
         const numbers = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
         const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+        const textColorPicker = document.querySelector(".text-color-picker");
+        textColorPicker.innerHTML = `<div class="color-swatches">${colorSet}</div>`;
+        assignTextColor(textColorPicker);
 
         // Remove any existing event listener to avoid duplication
         addBulletBtn.replaceWith(addBulletBtn.cloneNode(true));
@@ -677,6 +738,7 @@ function injectCanvas() {
         const option = document.createElement("option");
         option.value = search_links[key];
         option.textContent = key;
+        if (key === "Oxford dictionary") option.selected = true;
         search_options.appendChild(option);
     });
 
@@ -710,7 +772,7 @@ function injectCanvas() {
             const isNewTabChecked = document.getElementById("newTab").checked;
             if (isNewTabChecked) window.open(url, "_blank");
             else {
-                const windowFeatures = "left=0,top=0,width=800,height=1200";
+                const windowFeatures = "right=0,top=0,width=800,height=1200";
                 window.open(url, "_blank", windowFeatures);
             }
         }

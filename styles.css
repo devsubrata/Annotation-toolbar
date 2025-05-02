@@ -29,11 +29,12 @@
     color: white;
 }
 
-.highlight_div {
+.highlight_div,
+.range_div {
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 2px solid #64c1d6;
+    border: 2px solid #09fa65;
     border-radius: 3px;
     gap: 1px;
 }
@@ -50,6 +51,13 @@
     padding: 2px;
 }
 
+.line-type {
+    width: 60px;
+    min-height: 37px;
+    outline: none;
+    border-radius: 5px;
+}
+
 #opacity {
     width: 50px;
 }
@@ -61,15 +69,18 @@
 #activeColor {
     width: 40px;
     height: 40px;
-    background-color: black;
+    background-color: rgb(0, 0, 255);
     border-radius: 50%;
     border: 1px solid rgb(0, 0, 0);
 }
 
 /* Color picker button styling */
+.text-color-picker,
 .color-picker {
     position: relative;
 }
+
+.text-color-picker,
 .color-picker-button {
     width: 60px;
     height: 35px;
@@ -77,9 +88,15 @@
     border-radius: 5px;
     cursor: pointer;
     background-color: #ffffff; /* Default button color */
-    transition: transform 0.2s ease;
 }
 
+.text-color-picker {
+    background-color: #0000ff;
+}
+
+.color-picker-button {
+    transition: transform 0.2s ease;
+}
 .color-picker-button:hover {
     transform: scale(1.1); /* Slightly enlarge on hover */
 }
@@ -88,7 +105,7 @@
 .color-swatches {
     display: none;
     position: absolute;
-    top: 40;
+    top: 40px;
     left: 0;
     background-color: #fff;
     border: 2px solid #ccc;
