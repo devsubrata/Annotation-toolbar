@@ -59,6 +59,7 @@ function injectToolbar() {
         </div>
         <button id="filledRectangle" title="Filled rectangle">▆</button>
         <button id="typeText" title="Add text">T</button>
+        <button id="insertImage" title="Insert Image">🖼️</button>
         <button id="horizontalLine" title="straight line" class="active">__</button>
         <button id="rectangle" title="Rectangle">▭</button>
         <button id="circle" title="Circle">🔘</button>
@@ -157,7 +158,6 @@ function injectCanvas() {
         canvas.style.pointerEvents = "auto";
         canvas.style.backgroundColor = "transparent";
     }
-
     setupCanvas();
 
     const ctx = canvas.getContext("2d");
@@ -171,6 +171,7 @@ function injectCanvas() {
         rectangle: document.getElementById("rectangle"),
         filledRectangle: document.getElementById("filledRectangle"),
         typeText: document.getElementById("typeText"),
+        pasteImage: document.getElementById("insertImage"),
         eraser: document.getElementById("eraser"),
         eyeDropperTool: document.getElementById("color_detector"),
         circle: document.getElementById("circle"),
@@ -179,6 +180,7 @@ function injectCanvas() {
 
     let painting = false;
     let isTyping = false;
+    let isPasting = false;
     let brushSize = 2;
     let highlighterSize = 23;
     let opacity = 1.0;
@@ -218,8 +220,9 @@ function injectCanvas() {
 
     // Set active tool
     function setActiveTool(tool) {
-        // consoleLog(tool);
+        consoleLog(tool);
         if (tool !== "typeText") isTyping = false;
+        if (tool !== "pasteImage") isPasting = false;
 
         currentTool = tool;
         Object.values(tools).forEach((btn) => btn.classList.remove("active"));
@@ -248,6 +251,7 @@ function injectCanvas() {
             return;
         }
         if (currentTool === "eyeDropperTool") return;
+        if (currentTool === "pasteImage") return;
 
         painting = true;
 
@@ -357,6 +361,8 @@ function injectCanvas() {
                 if (color1 === "None") return;
                 colorPicker1.children[0].style.backgroundColor = color1;
             }
+        } else if (currentTool === "pasteImage") {
+            handlePasteImage(e);
         } else {
             showModal(e);
         }
@@ -394,6 +400,10 @@ function injectCanvas() {
     tools.typeText.addEventListener("click", () => {
         isTyping = true;
         setActiveTool("typeText");
+    });
+    tools.pasteImage.addEventListener("click", () => {
+        isPasting = true;
+        setActiveTool("pasteImage");
     });
     tools.circle.addEventListener("click", () => setActiveTool("circle"));
     tools.filledCircle.addEventListener("click", () => setActiveTool("filledCircle"));
@@ -710,6 +720,53 @@ function injectCanvas() {
             document.body.style.paddingRight = ""; // Reset padding
         }
     }
+
+    //TODO: Handing inserting image from clipboard
+    let clickPosition = { x: 0, y: 0 };
+
+    function handlePasteImage(e) {
+        const rect = canvas.getBoundingClientRect();
+        clickPosition.x = e.clientX - rect.left;
+        clickPosition.y = e.clientY - rect.top;
+    }
+
+    function getImageScale() {
+        const input = prompt("Enter image scale (e.g., 0.5, 1, 2):", "1");
+        const parsed = parseFloat(input);
+        let imageScale;
+        if (!isNaN(parsed) && parsed > 0) {
+            imageScale = parsed;
+        } else {
+            alert("Invalid scale value. Using default (1).");
+            imageScale = 1;
+        }
+        return imageScale;
+    }
+
+    window.addEventListener("paste", async function (e) {
+        if (!isPasting) return;
+
+        const items = e.clipboardData.items;
+        const scale = getImageScale();
+        for (const item of items) {
+            if (item.type.indexOf("image") !== -1) {
+                const blob = item.getAsFile();
+                const img = new Image();
+                img.onload = function () {
+                    ctx.drawImage(
+                        img,
+                        clickPosition.x,
+                        clickPosition.y,
+                        img.width * scale,
+                        img.height * scale
+                    );
+                };
+                img.src = URL.createObjectURL(blob);
+                break; // Only handle the first image
+            }
+        }
+    });
+
     // for look a terms from various links
     const search_links = {
         "Google search": "https://www.google.com/search?q={search_term}",
