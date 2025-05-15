@@ -90,11 +90,11 @@ function injectToolbar() {
                     <option value="sans-serif">Sans Serif</option>
                     <option value="serif">Serif</option>
                     <option value="monospace">Monospace</option>
-                    <option value="Comic Sans MS">Comic Sans MS</option>
+                    <option value="Roboto Slab">Roboto slab</option>
                     <option value="Garamond">Garamond</option>
                     <option value="Georgia">Georgia</option>
                     <option value="Tahoma">Tahoma</option>
-                    <option value="Trebuchet MS">Trebuchet MS</option>
+                    <option value="Open Sans">Open sans</option>
                     <option value="Verdana">Verdana</option>
                 </select>
                 <div class="text-color-picker"></div>
@@ -141,6 +141,8 @@ function injectToolbar() {
     });
 
     injectCanvas(); // Call the function to inject the canvas on toolbar injection
+
+    expandCanvasArea();
 }
 
 function injectCanvas() {
@@ -160,7 +162,7 @@ function injectCanvas() {
     }
     setupCanvas();
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const brushSizeInput = document.getElementById("brushSize");
 
     // Tools
@@ -185,7 +187,7 @@ function injectCanvas() {
     let highlighterSize = 23;
     let opacity = 1.0;
     let color1 = `rgba(0,0,255,${opacity})`;
-    let color2 = `rgba(255, 255, 0, 0.4)`;
+    let color2 = `rgba(255, 165, 0, 0.4)`;
     let textColor = `#0000ff`;
     let currentTool = "horizontalLine";
     let startX, startY;
@@ -434,7 +436,7 @@ function injectCanvas() {
     });
 
     document.getElementById("exit")?.addEventListener("click", () => {
-        ["drawingCanvas", "custom-toolbar"].forEach((id) => {
+        ["drawingCanvas", "custom-toolbar", "expand_canvas"].forEach((id) => {
             document.getElementById(id)?.remove();
         });
     });
@@ -509,6 +511,8 @@ function injectCanvas() {
                 if (colorVariable === 1) color1 = createRGBA(selectedColor, opacity);
                 else color2 = createRGBA(selectedColor, 0.4);
 
+                // consoleLog(color2);
+
                 if (currentTool === "highlighter" || currentTool === "filledRectangle")
                     document.getElementById("activeColor").style.backgroundColor = color2;
                 else document.getElementById("activeColor").style.backgroundColor = color1;
@@ -545,8 +549,7 @@ function injectCanvas() {
 
         // Hide the color swatches if click is outside the picker
         document.addEventListener("click", function (event) {
-            if (!event.target.closest(".text-color-picker"))
-                colorSwatches.classList.remove("visible");
+            if (!event.target.closest(".text-color-picker")) colorSwatches.classList.remove("visible");
         });
     }
 
@@ -753,13 +756,7 @@ function injectCanvas() {
                 const blob = item.getAsFile();
                 const img = new Image();
                 img.onload = function () {
-                    ctx.drawImage(
-                        img,
-                        clickPosition.x,
-                        clickPosition.y,
-                        img.width * scale,
-                        img.height * scale
-                    );
+                    ctx.drawImage(img, clickPosition.x, clickPosition.y, img.width * scale, img.height * scale);
                 };
                 img.src = URL.createObjectURL(blob);
                 break; // Only handle the first image
@@ -772,8 +769,7 @@ function injectCanvas() {
         "Google search": "https://www.google.com/search?q={search_term}",
         "Cambridge dictionary": "https://dictionary.cambridge.org/dictionary/english/{search_term}",
         "Longman dictionary": "https://www.ldoceonline.com/dictionary/{search_term}",
-        "Oxford dictionary":
-            "https://www.oxfordlearnersdictionaries.com/definition/english/{search_term}",
+        "Oxford dictionary": "https://www.oxfordlearnersdictionaries.com/definition/english/{search_term}",
         "Webster dictionary": "https://www.merriam-webster.com/dictionary/{search_term}",
         "Collins dictionary": "https://www.collinsdictionary.com/dictionary/english/{search_term}",
         "vocabulary.com": "https://www.vocabulary.com/dictionary/{search_term}",
@@ -825,13 +821,9 @@ function injectCanvas() {
                 return;
             }
             const url = link.replace("{search_term}", searchTerm);
-
             const isNewTabChecked = document.getElementById("newTab").checked;
             if (isNewTabChecked) window.open(url, "_blank");
-            else {
-                const windowFeatures = "right=0,top=0,width=800,height=1200";
-                window.open(url, "_blank", windowFeatures);
-            }
+            else openOnRightHalf(url);
         }
         newSearchBtn.addEventListener("click", searchTerm);
         searchInput.onkeydown = (e) => {
@@ -925,4 +917,46 @@ async function startFullPageCapture() {
     a.href = finalImage;
     a.download = `fullpage-${Date.now()}.png`;
     a.click();
+}
+
+function openOnRightHalf(url) {
+    const laptopWidth = 1920; // Width of your laptop screen
+    const lgScreenWidth = 2560; // Width of LG monitor
+    const halfLgWidth = lgScreenWidth / 2;
+    const left = laptopWidth + halfLgWidth; // Start at middle of LG screen
+    const top = 0;
+    const width = 800;
+    const height = 1200;
+
+    const win = window.open(url, "_blank", `width=${width},height=${height},left=${left},top=${top}`);
+
+    // Optional moveTo fallback (may work in some browsers)
+    setTimeout(() => {
+        try {
+            win.moveTo(left, top);
+            win.resizeTo(width, height);
+        } catch (e) {
+            console.warn("Browser blocked moveTo:", e);
+        }
+    }, 100);
+}
+
+function expandCanvasArea() {
+    const expandBtn = document.createElement("button");
+    expandBtn.id = "expand_canvas";
+    expandBtn.textContent = "Expand Canvas";
+    document.body.appendChild(expandBtn);
+
+    expandBtn.addEventListener("click", () => {
+        const whiteBg = document.createElement("div");
+        whiteBg.classList.add("whiteBg");
+        document.body.appendChild(whiteBg);
+
+        const canvas = document.getElementById("drawingCanvas");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.height += 600;
+        ctx.putImageData(imageData, 0, 0);
+    });
 }
